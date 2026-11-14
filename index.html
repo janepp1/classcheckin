@@ -212,6 +212,9 @@ table.sum{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-nume
 .confetti i{position:absolute;top:-20px;width:10px;height:14px;border-radius:3px;animation:fall 2.6s cubic-bezier(.2,.7,.4,1) forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}
 @media (prefers-reduced-motion:reduce){.confetti{display:none}}
+
+.card.mine{border-color:var(--pink-strong);box-shadow:0 0 0 3px color-mix(in srgb,var(--pink-strong) 22%,transparent)}
+#meNote{background:var(--pink-soft);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -236,11 +239,14 @@ table.sum{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-nume
     <button class="btn" id="drawBtn">🎡 สุ่มรางวัล</button>
     <button class="btn" id="manageBtn">จัดการรายชื่อ</button>
     <button class="btn" id="exportBtn">⬇ CSV วันนี้</button>
+    <button class="btn" id="kioskBtn">📱 เครื่องหน้าห้อง: ปิด</button>
+    <button class="btn" id="unbindBtn" hidden>ล้างชื่อที่ผูกกับเครื่องนี้</button>
     <button class="btn" id="pinBtn">ตั้ง PIN</button>
     <button class="btn" id="lockBtn" hidden>🔒 ล็อก</button>
   </div>
 
   <div id="banner" class="note" hidden></div>
+  <div id="meNote" class="note" hidden></div>
   <div id="localNote" class="note" hidden>โหมดเครื่องเดียว: ข้อมูลเช็คชื่อเก็บไว้ในเบราว์เซอร์ของเครื่องนี้ เหมาะกับตั้งแท็บเล็ตหรือคอมไว้หน้าห้องให้ทุกคนมาเซ็นชื่อ กด “CSV วันนี้” ในโหมดผู้สอนเพื่อเก็บผลไว้ทุกวัน</div>
 
   <section class="panel" id="panel" hidden>
@@ -446,8 +452,22 @@ $('prevDay').onclick=()=>shift(-1);$('nextDay').onclick=()=>shift(1);
 const isToday=()=>S.date===ymd(new Date());
 
 // ---------- admin / PIN ----------
-const canAdmin=()=>S.local||S.canEdit;
-const isAdmin=()=>canAdmin()&&(!S.settings.pinHash||S.unlocked);
+const canAdmin=()=>S.mode!=='claude'||S.canEdit;
+const cfgPin=()=>String((window.CHECKIN_CONFIG||{}).TEACHER_PIN||'').trim();
+const hasPin=()=>!!(S.settings.pinHash||cfgPin());
+// outside Claude anyone can open the page, so teacher tools always need the PIN
+const isAdmin=()=>canAdmin()&&(S.unlocked||(S.mode==='claude'&&!S.settings.pinHash));
+
+// ---------- this device (a student's phone checks in only one name) ----------
+const DEV={
+  get me(){try{return JSON.parse(localStorage.getItem('cff-me')||'null')}catch(e){return null}},
+  set me(v){try{v?localStorage.setItem('cff-me',JSON.stringify(v)):localStorage.removeItem('cff-me')}catch(e){}},
+  get kiosk(){try{return localStorage.getItem('cff-kiosk')==='1'}catch(e){return false}},
+  set kiosk(v){try{v?localStorage.setItem('cff-kiosk','1'):localStorage.removeItem('cff-kiosk')}catch(e){}}
+};
+const personal=()=>!isAdmin()&&!DEV.kiosk;          // one-person phone
+const myId=()=>{const m=DEV.me;return m&&S.students.some(s=>s.id===m.id)?m.id:null};
+const canActFor=id=>!personal()||!myId()||myId()===id;
 let idleT=null;
 function bumpIdle(){if(!S.unlocked)return;clearTimeout(idleT);idleT=setTimeout(()=>{lock();toast('ล็อกโหมดผู้สอนอัตโนมัติแล้ว')},15*60*1000)}
 ['pointerdown','keydown'].forEach(t=>document.addEventListener(t,bumpIdle,{passive:true}));
@@ -461,19 +481,21 @@ function openPin(mode){
   pinMode=mode;$('pinErr').textContent='';$('pinInput').value='';$('pinInput2').value='';
   $('pinInput2').hidden=mode==='unlock';$('pinRemove').hidden=mode!=='change';
   $('pinTitle').firstChild.textContent=mode==='unlock'?'ใส่ PIN ผู้สอน ':mode==='set'?'ตั้ง PIN ผู้สอน ':'เปลี่ยน PIN ผู้สอน ';
-  $('pinSub').textContent=mode==='unlock'?'ปลดล็อกเพื่อจัดการรายชื่อ ดูสรุป และสุ่มรางวัล':'ใช้ตัวเลข 4–8 หลัก ใครที่ไม่มี PIN จะเห็นแค่หน้าเช็คชื่อ';
+  $('pinSub').textContent=mode==='unlock'?'ปลดล็อกเพื่อจัดการรายชื่อ นำเข้า CSV ดูสรุป และสุ่มรางวัล':mode==='set'&&!S.unlocked?'ยังไม่มี PIN ผู้สอน ตั้ง PIN ตัวเลข 4–8 หลักตอนนี้ (ควรตั้งก่อนแชร์ลิงก์ให้นักเรียน)':'ใช้ตัวเลข 4–8 หลัก ใครที่ไม่มี PIN จะเห็นแค่หน้าเช็คชื่อ';
   openModal('pinModal');
 }
-$('teacherBtn').onclick=()=>openPin('unlock');
+$('teacherBtn').onclick=()=>openPin(hasPin()?'unlock':'set');
 $('pinBtn').onclick=()=>openPin(S.settings.pinHash?'change':'set');
 $('lockBtn').onclick=()=>{lock();toast('ล็อกแล้ว')};
+$('kioskBtn').onclick=()=>{if(!isAdmin())return;DEV.kiosk=!DEV.kiosk;if(DEV.kiosk)DEV.me=null;render();toast(DEV.kiosk?'เครื่องนี้เป็นเครื่องหน้าห้อง: ทุกคนมาเช็คชื่อที่เครื่องนี้ได้':'เครื่องนี้กลับเป็นเครื่องส่วนตัว: เช็คชื่อได้ 1 คน')};
+$('unbindBtn').onclick=()=>{if(!isAdmin())return;DEV.me=null;render();toast('ล้างชื่อที่ผูกกับเครื่องนี้แล้ว')};
 $('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')(pinMode==='unlock'?$('pinOk'):$('pinInput2')).click()});
 $('pinInput2').addEventListener('keydown',e=>{if(e.key==='Enter')$('pinOk').click()});
 $('pinInput2').addEventListener('click',e=>e.stopPropagation());
 $('pinOk').onclick=async()=>{
   const p=$('pinInput').value.trim();
   if(pinMode==='unlock'){
-    if(hashPin(p)===S.settings.pinHash){S.unlocked=true;bumpIdle();closeModal('pinModal');render();toast('ปลดล็อกโหมดผู้สอนแล้ว')}
+    if(S.settings.pinHash?hashPin(p)===S.settings.pinHash:(cfgPin()&&p===cfgPin())){S.unlocked=true;bumpIdle();closeModal('pinModal');render();toast('ปลดล็อกโหมดผู้สอนแล้ว')}
     else{$('pinErr').textContent='PIN ไม่ถูกต้อง';$('pinInput').select()}
     return;
   }
@@ -484,6 +506,7 @@ $('pinOk').onclick=async()=>{
 };
 $('pinRemove').onclick=async()=>{
   const b=$('pinRemove');if(!arm(b,'ยกเลิกการใช้ PIN','แตะอีกครั้งเพื่อยืนยัน'))return;
+  if(S.mode!=='claude'){$('pinErr').textContent='เวอร์ชันนี้ต้องมี PIN เสมอ เปลี่ยนเป็น PIN ใหม่แทนได้';return}
   try{await saveSettings({pinHash:undefined});closeModal('pinModal');toast('ยกเลิก PIN แล้ว')}catch(err){$('pinErr').textContent=errMsg(err)}
 };
 
@@ -495,8 +518,12 @@ function firstId(){let best=null,bt=Infinity;for(const s of S.students){const c=
 function render(){
   const admin=isAdmin();
   $('adminBar').hidden=!admin;
-  $('teacherBtn').hidden=!(canAdmin()&&S.settings.pinHash&&!S.unlocked);
-  $('lockBtn').hidden=!S.settings.pinHash;
+  $('teacherBtn').hidden=admin||!canAdmin()||(S.mode==='claude'&&!S.settings.pinHash);
+  $('lockBtn').hidden=!S.unlocked;
+  $('kioskBtn').textContent=DEV.kiosk?'📱 เครื่องหน้าห้อง: เปิด':'📱 เครื่องหน้าห้อง: ปิด';$('kioskBtn').classList.toggle('on',DEV.kiosk);
+  $('unbindBtn').hidden=!DEV.me;
+  const me=myId()&&personal()?S.students.find(s=>s.id===myId()):null;
+  $('meNote').hidden=!me;if(me)$('meNote').innerHTML=`เครื่องนี้เช็คชื่อในนาม <b>${esc(me.name)}</b> · กด Clock in / Clock out ได้เฉพาะชื่อนี้`;
   $('pinBtn').textContent=S.settings.pinHash?'เปลี่ยน PIN':'ตั้ง PIN';
   $('viewBtn').classList.toggle('on',S.view==='summary');
   $('viewBtn').textContent=S.view==='summary'?'← กลับหน้าเช็คชื่อ':'📊 สรุปทั้งคอร์ส';
@@ -513,7 +540,7 @@ function render(){
   const fid=firstId();const fs=S.students.find(s=>s.id===fid);
   $('sFirst').textContent=fs?`${fs.name} · ${fmtT(S.checks[fid].inAt)}`:'—';
   $('cAll').textContent=total;$('cWait').textContent=wait;$('cIn').textContent=nIn;$('cOut').textContent=nOut;
-  $('walkCta').hidden=!S.db||!S.stLoaded||!total;
+  $('walkCta').hidden=!S.db||!S.stLoaded||!total||!!(personal()&&myId());
 
   const main=$('main');
   if(!S.db){main.innerHTML=`<div class="note">กำลังเตรียมหน้าเช็คชื่อ…</div>`;return}
@@ -522,6 +549,7 @@ function render(){
   const q=S.q.trim().toLowerCase();
   let rows=S.students.map((s,i)=>({...s,idx:i})).filter(s=>(S.filter==='all'||statusOf(s.id)===S.filter)&&(!q||s.name.toLowerCase().includes(q)||(s.company||'').toLowerCase().includes(q)));
   if(S.sort==='time')rows.sort((a,b)=>(S.checks[a.id]?.inAt||Infinity)-(S.checks[b.id]?.inAt||Infinity)||a.idx-b.idx);
+  const mine=personal()&&myId();if(mine)rows.sort((a,b)=>(b.id===mine)-(a.id===mine));
   if(!rows.length){main.innerHTML=`<div class="note">ไม่พบชื่อที่ตรงกับการค้นหา/ตัวกรองนี้${q?' ถ้ายังไม่มีชื่อ กด “ลงทะเบียน Walk-in” ด้านล่าง':''}</div>`;return}
   main.innerHTML=`<div class="list">${rows.map(s=>cardHTML(s,fid,admin)).join('')}</div>`;
 }
@@ -530,13 +558,14 @@ function cardHTML(s,fid,admin){
   const food=ICON[FOODS[s.idx%FOODS.length]];
   const pill=st==='wait'?`<span class="pill wait">ยังไม่มา</span>`:st==='in'?`<span class="pill in">● อยู่ในคลาส</span>`:`<span class="pill out">กลับแล้ว</span>`;
   const walk=s.walkin?` <span class="pill walk">Walk-in</span>`:'';
-  const inSlot=c.inAt?`<span class="t">${fmtT(c.inAt)}</span>`:`<button class="btn primary" data-act="in" data-id="${s.id}" ${busy?'disabled':''}>Clock in</button>`;
-  const outSlot=c.outAt?`<span class="t">${fmtT(c.outAt)}</span>`:(c.inAt?`<button class="btn" data-act="out" data-id="${s.id}" ${busy?'disabled':''}>Clock out</button>`:`<span class="t empty">--:--</span>`);
+  const can=canActFor(s.id),mine=personal()&&myId()===s.id;
+  const inSlot=c.inAt?`<span class="t">${fmtT(c.inAt)}</span>`:(can?`<button class="btn primary" data-act="in" data-id="${s.id}" ${busy?'disabled':''}>Clock in</button>`:`<span class="t empty">--:--</span>`);
+  const outSlot=c.outAt?`<span class="t">${fmtT(c.outAt)}</span>`:(c.inAt&&can?`<button class="btn" data-act="out" data-id="${s.id}" ${busy?'disabled':''}>Clock out</button>`:`<span class="t empty">--:--</span>`);
   const reset=(admin&&c.inAt)?`<button class="reset" data-act="reset" data-id="${s.id}" aria-label="ล้างเวลาของ ${esc(s.name)}">ล้าง</button>`:'';
-  return `<article class="card ${st} ${first?'is-first':''}">
+  return `<article class="card ${st} ${first?'is-first':''} ${mine?'mine':''}">
     ${reset}
     <div class="avatar">${food}${first?`<span class="crown" title="มาคนแรก">${ICON.star}</span>`:''}</div>
-    <div class="who"><span class="no">#${s.idx+1}${first?' · มาคนแรก!':''}</span><span class="name">${esc(s.name)}</span>${s.company?`<span class="co">${esc(s.company)}</span>`:''}<span>${pill}${walk}</span></div>
+    <div class="who"><span class="no">#${s.idx+1}${first?' · มาคนแรก!':''}${mine?' · ชื่อของฉัน':''}</span><span class="name">${esc(s.name)}</span>${s.company?`<span class="co">${esc(s.company)}</span>`:''}<span>${pill}${walk}</span></div>
     <div class="times">
       <div class="slot"><span class="lbl">เข้าเรียน</span>${inSlot}</div>
       <div class="slot"><span class="lbl">กลับ</span>${outSlot}</div>
@@ -564,6 +593,8 @@ function renderRoster(){
 $('main').addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b||!S.db)return;
   const id=b.dataset.id,act=b.dataset.act,name=S.students.find(s=>s.id===id)?.name||'';
+  if((act==='in'||act==='out')&&!canActFor(id)){toast('เครื่องนี้เช็คชื่อได้เฉพาะชื่อของคุณเท่านั้น');return}
+  if(act==='reset'&&!isAdmin())return;
   if(act==='in'){openSig(id,name);return}
   if(act==='reset'&&!arm(b,'ล้าง','แตะอีกครั้งเพื่อล้าง'))return;
   if(act==='out'&&!isToday())toast('กำลังดูวันอื่นอยู่ เวลาที่บันทึกจะเป็นเวลาตอนนี้');
@@ -586,7 +617,7 @@ function sizePad(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio|
 function clearPad(){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.restore();sig.drawn=false;$('sigOk').disabled=true;$('sigPh').hidden=false}
 function openSig(id,name){
   sig.id=id;sig.name=name;$('sigTitle').textContent=`เซ็นชื่อ · ${name}`;
-  $('sigSub').textContent=isToday()?'เซ็นแล้วกดยืนยัน ระบบจะบันทึกเวลาเข้าเรียนทันที':'กำลังดูวันอื่นอยู่ เวลาที่บันทึกจะเป็นเวลาตอนนี้';
+  $('sigSub').textContent=(isToday()?'เซ็นแล้วกดยืนยัน ระบบจะบันทึกเวลาเข้าเรียนทันที':'กำลังดูวันอื่นอยู่ เวลาที่บันทึกจะเป็นเวลาตอนนี้')+(personal()&&!myId()?` · เครื่องนี้จะเช็คชื่อได้เฉพาะชื่อ “${name}” ตรวจให้แน่ใจว่าเป็นชื่อของคุณ`:'');
   openModal('sigModal');sizePad();clearPad();$('sigOk').textContent='ยืนยัน Clock in';
 }
 const pt=e=>{const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
@@ -598,9 +629,11 @@ $('sigClear').onclick=clearPad;
 function sigData(){const w=480,h=Math.round(cv.height/cv.width*w),o=document.createElement('canvas');o.width=w;o.height=h;o.getContext('2d').drawImage(cv,0,0,w,h);return o.toDataURL('image/png')}
 $('sigOk').onclick=async()=>{
   if(!sig.drawn||!sig.id)return;const id=sig.id,name=sig.name,data=sigData(),date=S.date;
+  if(!canActFor(id)){toast('เครื่องนี้เช็คชื่อได้เฉพาะชื่อของคุณเท่านั้น');closeModal('sigModal');return}
   $('sigOk').disabled=true;$('sigOk').textContent='กำลังบันทึก…';S.busy.add(id);
   try{
     await S.db.doc(`days/${date}/checks/${id}`).set({studentId:id,name,inAt:Date.now(),sig:data});
+    if(personal()&&!myId())DEV.me={id,name};
     closeModal('sigModal');toast(`ยินดีต้อนรับ ${name} 🌸`);noteDay(date);
   }catch(err){toast(errMsg(err));$('sigOk').disabled=false;$('sigOk').textContent='ยืนยัน Clock in'}
   S.busy.delete(id);render();
@@ -613,7 +646,7 @@ async function noteDay(date){ // keeps a list of class days for the course summa
 }
 
 // ---------- walk-in ----------
-function openWalk(){$('walkErr').textContent='';$('walkName').value=S.q.trim();$('walkCo').value='';openModal('walkModal')}
+function openWalk(){if(personal()&&myId()){toast('เครื่องนี้เช็คชื่อในนามของคุณแล้ว');return}$('walkErr').textContent='';$('walkName').value=S.q.trim();$('walkCo').value='';openModal('walkModal')}
 $('walkBtn').onclick=openWalk;
 $('walkName').addEventListener('keydown',e=>{if(e.key==='Enter')$('walkCo').focus()});
 $('walkCo').addEventListener('keydown',e=>{if(e.key==='Enter')$('walkOk').click()});
@@ -621,7 +654,7 @@ $('walkOk').onclick=async()=>{
   const name=clean($('walkName').value),company=clean($('walkCo').value);
   if(name.length<2){$('walkErr').textContent='กรอกชื่อ-นามสกุลก่อนนะ';return}
   const dup=S.students.find(s=>keyOf(s.name)===keyOf(name));
-  if(dup){$('walkErr').textContent='มีชื่อนี้ในรายการแล้ว ค้นหาชื่อแล้วกด Clock in ได้เลย';S.q=name;$('q').value=name;render();return}
+  if(dup){$('walkErr').textContent='มีชื่อนี้ในรายการแล้ว ค้นหาชื่อของคุณแล้วกด Clock in ได้เลย';S.q=name;$('q').value=name;render();return}
   $('walkOk').disabled=true;
   try{
     const order=S.students.reduce((m,s)=>Math.max(m,s.order||0),0)+1;
@@ -653,7 +686,7 @@ function courseDays(){
   return [...new Set(set)].sort();
 }
 function setView(v){S.view=v;$('panel').hidden=true;if(v==='summary')loadSummary();render();window.scrollTo({top:0,behavior:'smooth'})}
-$('viewBtn').onclick=()=>setView(S.view==='summary'?'roll':'summary');
+$('viewBtn').onclick=()=>isAdmin()&&setView(S.view==='summary'?'roll':'summary');
 async function loadSummary(){
   const days=courseDays();S.sum={loading:true,data:S.sum?.data||{}};render();
   for(const d of days){
@@ -729,7 +762,7 @@ function renderDraw(){
   const ws=S.winners.map(id=>S.students.find(s=>s.id===id)).filter(Boolean);
   $('winnersWrap').hidden=!ws.length;$('winnersList').innerHTML=ws.map((s,i)=>`<span>🎁 ${i+1}. ${esc(s.name)}</span>`).join('');
 }
-$('drawBtn').onclick=()=>{holdWheel=false;$('winnerBox').hidden=true;$('spinBtn').textContent='หมุนเลย!';openModal('drawModal');$('hub').innerHTML=ICON.strawberry;renderDraw()};
+$('drawBtn').onclick=()=>{if(!isAdmin())return;holdWheel=false;$('winnerBox').hidden=true;$('spinBtn').textContent='หมุนเลย!';openModal('drawModal');$('hub').innerHTML=ICON.strawberry;renderDraw()};
 $('noRepeat').onchange=()=>{if(!spinning)renderDraw()};
 $('spinBtn').onclick=()=>{
   if(holdWheel){holdWheel=false;buildPool();drawWheel()}
@@ -773,7 +806,7 @@ async function addPeople(people){
 $('addBtn').onclick=async()=>{const v=$('newName').value;if(!v.trim())return;const n=await addPeople([{name:v,company:$('newCo').value}]);if(n){$('newName').value='';$('newCo').value='';toast('เพิ่มชื่อแล้ว')}else toast('มีชื่อนี้อยู่แล้ว')};
 $('newName').addEventListener('keydown',e=>{if(e.key==='Enter')$('addBtn').click()});
 $('newCo').addEventListener('keydown',e=>{if(e.key==='Enter')$('addBtn').click()});
-$('importBtn').onclick=()=>$('fileInput').click();
+$('importBtn').onclick=()=>isAdmin()&&$('fileInput').click();
 $('fileInput').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{
@@ -797,7 +830,7 @@ function saveCSV(lines,filename){
   const csv='﻿'+lines.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
   S.downloads.save({filename,data:csv}).catch(e=>{if(e&&!['declined','dismissed','cancelled'].includes(e.code))toast('ดาวน์โหลดไม่สำเร็จ')});
 }
-$('exportBtn').onclick=()=>{
+$('exportBtn').onclick=()=>{if(!isAdmin())return;
   const fid=firstId();
   const lines=[['ลำดับ','ชื่อ','บริษัท','Walk-in','วันที่','เวลาเข้า','เวลาออก','สถานะ','มาคนแรก']];
   S.students.forEach((s,i)=>{const c=S.checks[s.id]||{},st=statusOf(s.id);
