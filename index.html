@@ -215,6 +215,18 @@ table.sum{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-nume
 
 .card.mine{border-color:var(--pink-strong);box-shadow:0 0 0 3px color-mix(in srgb,var(--pink-strong) 22%,transparent)}
 #meNote{background:var(--pink-soft);color:var(--ink)}
+
+/* version badge */
+footer{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:center}
+.ver{border:2px solid var(--ink);background:var(--pink);color:#231B20;border-radius:999px;padding:2px 10px;font-family:var(--f-display);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums;box-shadow:0 2px 0 var(--ink)}
+.ver:hover{background:var(--pink-strong);color:#fff}
+.changelog{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow:auto}
+.changelog>li{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline;padding-bottom:12px;border-bottom:2px dashed var(--line)}
+.changelog>li:last-child{border-bottom:0}
+.changelog .v{font-family:var(--f-display);font-weight:700;font-size:15px;background:var(--pink-soft);border-radius:999px;padding:1px 10px;font-variant-numeric:tabular-nums}
+.changelog>li.now .v{background:var(--ink);color:var(--bg)}
+.changelog .d{font-size:12px;color:var(--muted)}
+.changelog ul{grid-column:2;margin:2px 0 0;padding-left:18px;font-size:13.5px;display:flex;flex-direction:column;gap:2px}
 </style>
 </head>
 <body>
@@ -295,7 +307,7 @@ table.sum{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-nume
 
   <section id="sumView" hidden style="display:flex;flex-direction:column;gap:14px"></section>
 
-  <footer>แตะ <b>Clock in</b> แล้วเซ็นชื่อเมื่อมาถึง และ <b>Clock out</b> ตอนกลับ</footer>
+  <footer><span>แตะ <b>Clock in</b> แล้วเซ็นชื่อเมื่อมาถึง และ <b>Clock out</b> ตอนกลับ</span><button class="ver" id="verBtn" aria-label="ดูประวัติเวอร์ชัน"></button></footer>
 </div>
 <div class="toast" id="toast" hidden></div>
 
@@ -369,6 +381,13 @@ table.sum{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-nume
     </div>
   </div>
 </div>
+<!-- versions -->
+<div class="modal" id="verModal" hidden role="dialog" aria-modal="true" aria-labelledby="verTitle">
+  <div class="sheet">
+    <h3 id="verTitle">ประวัติเวอร์ชัน <button class="x" data-close aria-label="ปิด">×</button></h3>
+    <ol class="changelog" id="changelog"></ol>
+  </div>
+</div>
 <div class="confetti" id="confetti" aria-hidden="true"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -394,6 +413,16 @@ document.getElementById('firstIcon').innerHTML=ICON.star.replace('<svg','<svg wi
 
 // starting roster for the self-hosted copy (used only when this browser has no names yet)
 const DEFAULT_ROSTER=[["ภณธกร วงศ์เจริญ", ""], ["วิภาดา พลาธนพร", ""], ["วราภรณ์ หวานล้ำ", ""], ["นรพนธ์ จิรัฐิติกาลพงศ์", ""], ["จิดาภา ทองเกิด", ""], ["ธนวรรณ ตั้งตรงพานิช", ""], ["คณาธิป จำนงค์", ""], ["รัตติยากร ฉายหิรัญ", ""], ["วิชยุตม์ กีรติธนาภรณ์", ""], ["จิตรา คำแหง", ""], ["สิริวรรณ รอดศิริ", "Foodle NoodleCo., Ltd"], ["วิศรุต สุดสัตย์", "Foodle NoodleCo., Ltd"], ["กิตติธัช ธูปถมพงศ์", "Foodle NoodleCo., Ltd"], ["นางสาวณัฏชา แสวงหอม", "บริษัท โอชาฟูดแพ็ค จำกัด"], ["คงติภูมิ มณีโชค", "บริษัท ซีเอ็ม พรีเมี่ยม ไรซ์ จำกัด"], ["สุชาดา เอี่ยมสำอางค์", "เทพผดุงพรมะพร้าว จำกัด"], ["พิชญา พิสุทธิ์พิเชฎฐ์", "เทพผดุงพรมะพร้าว จำกัด"], ["วันทนา จุตาลานนท์", "เทพผดุงพรมะพร้าว จำกัด"], ["ระวีวรรณ การภักดี", "บริษัท โอชาฟูดแพ็ค จำกัด"], ["พรพิมล ผลเพิ่ม", "บริษัท ลาโต้ ฟู้ดแอนด์ดริ้งส์ จำกัด"], ["อรณิชา ครองศักดิ์ศิริ", "บริษัท โอชาฟูดแพ็ค จำกัด"], ["นัทธมน พุทธพรม", "บริษัท โอชาฟูดแพ็ค จำกัด"]];
+// ---------- version (bump APP_VERSION and add a CHANGELOG entry on every release) ----------
+const APP_VERSION='1.5.0';
+const CHANGELOG=[
+  {v:'1.5.0',d:'2026-11-14',items:['ฟีเจอร์ผู้สอนต้องใส่ PIN เสมอ (จัดการรายชื่อ, นำเข้า CSV, สรุป, สุ่มรางวัล)','มือถือนักเรียนเช็คชื่อได้เฉพาะชื่อของตัวเอง','โหมดเครื่องหน้าห้องสำหรับแท็บเล็ตที่ให้หลายคนเช็คชื่อ','แสดงเลขเวอร์ชันและประวัติการอัปเดต']},
+  {v:'1.4.0',d:'2026-11-14',items:['รองรับบันทึกลง Google Sheet ผ่าน Google Apps Script','ไฟล์พร้อมขึ้น GitHub Pages']},
+  {v:'1.3.0',d:'2026-11-14',items:['QR Code หน้าห้อง','PIN ผู้สอน','สรุปทั้งคอร์สและเกณฑ์ใบประกาศ','ลงทะเบียน Walk-in','สุ่มจับรางวัลแบบวงล้อ']},
+  {v:'1.2.0',d:'2026-11-14',items:['เซ็นลายเซ็นตอน Clock in','ใช้งานบนเซิร์ฟเวอร์ของตัวเองได้']},
+  {v:'1.1.0',d:'2026-11-14',items:['นำเข้ารายชื่อคนที่ 2 ของแต่ละบริษัท','แสดงชื่อบริษัทใต้ชื่อ']},
+  {v:'1.0.0',d:'2026-11-14',items:['Clock in / Clock out','ดาวสำหรับคนที่มาคนแรก','นำเข้ารายชื่อจาก CSV / Excel']}
+];
 // ---------- helpers ----------
 const ARTIFACT_URL='https://claude.ai/artifact/AwUaNJVTejzjse1D1USpGb';
 const $=id=>document.getElementById(id);
@@ -836,6 +865,13 @@ $('exportBtn').onclick=()=>{if(!isAdmin())return;
   S.students.forEach((s,i)=>{const c=S.checks[s.id]||{},st=statusOf(s.id);
     lines.push([i+1,s.name,s.company||'',s.walkin?'ใช่':'',S.date,c.inAt?fmtT(c.inAt):'',c.outAt?fmtT(c.outAt):'',st==='wait'?'ยังไม่มา':st==='in'?'อยู่ในคลาส':'กลับแล้ว',s.id===fid?'⭐':''])});
   saveCSV(lines,`เช็คชื่อ-Claude-${S.date}.csv`);
+};
+
+// ---------- version badge ----------
+$('verBtn').textContent='v'+APP_VERSION;
+$('verBtn').onclick=()=>{
+  $('changelog').innerHTML=CHANGELOG.map(c=>`<li class="${c.v===APP_VERSION?'now':''}"><span class="v">v${c.v}</span><span class="d">${shortDate(c.d)}${c.v===APP_VERSION?' · เวอร์ชันปัจจุบัน':''}</span><ul>${c.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></li>`).join('');
+  openModal('verModal');
 };
 
 async function readFileRows(f){
