@@ -1,0 +1,82 @@
+# Claude future food · เว็บเช็คชื่อเข้าเรียน
+
+เว็บเช็คชื่อสำหรับคลาส Claude ธีมชมพูพาสเทล ใช้ได้ทั้งคอม แท็บเล็ต และมือถือ ทุกการ Clock in / Clock out บันทึกลง Google Sheet
+
+**ความสามารถ**
+- Clock in พร้อมเซ็นลายเซ็น และ Clock out
+- ดาวให้คนที่มาคนแรก
+- ลงทะเบียน Walk-in
+- QR Code หน้าห้อง
+- PIN ผู้สอน
+- สรุปทั้งคอร์สพร้อมเกณฑ์ใบประกาศ
+- สุ่มจับรางวัล
+- นำเข้ารายชื่อจาก CSV / Excel
+- ดาวน์โหลดสรุปเป็น CSV
+
+## ไฟล์ในโปรเจกต์
+
+| ไฟล์ | หน้าที่ |
+|---|---|
+| `index.html` | หน้าเว็บทั้งหมด (GitHub Pages เปิดไฟล์นี้) |
+| `config.js` | ใส่ลิงก์ Google Apps Script ที่นี่ |
+| `apps-script/Code.gs` | โค้ดฝั่ง Google Sheet (วางใน Apps Script) |
+| `apps-script/appsscript.json` | ค่าตั้งของ Apps Script (ใช้เมื่อใช้ `clasp`) |
+| `data/students.csv` | รายชื่อนักเรียนเริ่มต้น 22 คน สำรองไว้นำเข้า |
+| `.nojekyll` | ให้ GitHub Pages เสิร์ฟไฟล์ตรง ๆ |
+
+## ขั้นที่ 1 · เตรียม Google Sheet
+
+1. สร้าง Google Sheet ใหม่ ตั้งชื่อ เช่น `เช็คชื่อ Claude future food`
+2. ไปที่ **ส่วนขยาย (Extensions) → Apps Script**
+3. ลบโค้ดเดิมใน `Code.gs` แล้ววางเนื้อหาจากไฟล์ `apps-script/Code.gs` ทั้งหมด กดบันทึก
+4. เลือกฟังก์ชัน `setup` ที่แถบด้านบน แล้วกด **เรียกใช้ (Run)**
+   - ครั้งแรก Google จะขอสิทธิ์เข้าถึง Sheet และ Drive ให้กดอนุญาต
+   - ถ้าขึ้นหน้าเตือน "Google hasn't verified this app" ให้กด **Advanced → Go to … (unsafe)** ได้ เพราะเป็นสคริปต์ของคุณเอง
+   - ระบบจะสร้างชีต `Students`, `Attendance`, `Meta` และใส่รายชื่อ 22 คนให้
+
+## ขั้นที่ 2 · Deploy เป็น Web app
+
+1. ใน Apps Script กด **Deploy → New deployment**
+2. ที่ไอคอนเฟือง เลือก **Web app**
+3. ตั้งค่า
+   - **Execute as:** Me (อีเมลของคุณ)
+   - **Who has access:** Anyone
+4. กด **Deploy** แล้วคัดลอก **Web app URL** (ลงท้ายด้วย `/exec`)
+
+> ถ้าแก้ `Code.gs` ภายหลัง ต้องกด **Deploy → Manage deployments → แก้ไข (ดินสอ) → Version: New version → Deploy** ทุกครั้ง ลิงก์เดิมจะยังใช้ได้
+
+## ขั้นที่ 3 · ใส่ลิงก์ใน `config.js`
+
+```js
+window.CHECKIN_CONFIG = {
+  SHEETS_API_URL: "https://script.google.com/macros/s/xxxxxxxx/exec",
+  TOKEN: "",
+  POLL_SECONDS: 8
+};
+```
+
+ทดสอบก่อนอัปโหลดได้โดยเปิด `index.html` ในเบราว์เซอร์ ถ้าเชื่อมต่อสำเร็จ รายชื่อจาก Google Sheet จะขึ้นในหน้าเว็บ
+
+## ขั้นที่ 4 · ขึ้น GitHub Pages
+
+1. สร้าง repository ใหม่บน GitHub เช่น `claude-future-food-checkin`
+2. อัปโหลดไฟล์ทั้งหมดในโฟลเดอร์นี้ไปที่ branch `main`
+3. ไปที่ **Settings → Pages**
+   - Source: **Deploy from a branch**
+   - Branch: `main` / `/ (root)` แล้วกด Save
+4. รอประมาณ 1–2 นาที เว็บจะอยู่ที่ `https://<ชื่อผู้ใช้>.github.io/claude-future-food-checkin/`
+5. เปิดเว็บ กด **🔐 ผู้สอน / ตั้ง PIN** แล้วกด **▦ QR หน้าห้อง** เพื่อแสดง QR ให้นักเรียนสแกน
+
+## ข้อมูลใน Google Sheet
+
+- **Students:** รายชื่อ (ID, ลำดับ, ชื่อ, บริษัท, Walk-in) แก้ชื่อหรือบริษัทในชีตได้โดยตรง แต่ห้ามแก้คอลัมน์ ID
+- **Attendance:** หนึ่งแถวต่อคนต่อวัน มีวันที่ ชื่อ บริษัท เวลาเข้า เวลาออก และลิงก์ไฟล์ลายเซ็นใน Google Drive คอลัมน์ H–J ซ่อนไว้สำหรับระบบ
+- **Meta:** ค่าตั้งของเว็บ (PIN, วันเรียน, เกณฑ์ใบประกาศ, ผู้ได้รางวัล) ไม่ต้องแก้เอง
+- รูปลายเซ็นเก็บในโฟลเดอร์ Drive ชื่อ `Claude Future Food - ลายเซ็น`
+
+## เรื่องที่ควรรู้
+
+- **ความเป็นส่วนตัว:** หน้าเว็บบน GitHub Pages เปิดได้สาธารณะ ใครมีลิงก์ก็เห็นรายชื่อและเวลาเข้าเรียน ถ้าไม่อยากให้เป็นสาธารณะ ให้ใช้ repo แบบ private ร่วมกับแพ็กเกจที่รองรับ Pages แบบ private หรือโฮสต์ที่อื่น
+- **PIN ผู้สอน:** กันคนกดเล่นได้ระดับหนึ่ง แต่ไม่ใช่ระบบความปลอดภัยเต็มรูปแบบ `TOKEN` ก็เช่นกัน เพราะอยู่ในไฟล์ที่เปิดดูได้
+- **ความเร็ว:** หน้าเว็บดึงข้อมูลใหม่ทุก 8 วินาที การกดบันทึกใช้เวลาประมาณ 1–2 วินาทีตามความเร็วของ Google Apps Script
+- **ไม่ได้ใส่ลิงก์ใน `config.js`:** เว็บจะทำงานแบบเครื่องเดียว เก็บข้อมูลในเบราว์เซอร์ เหมาะกับตั้งแท็บเล็ตหน้าห้อง
