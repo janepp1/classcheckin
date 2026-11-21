@@ -4,7 +4,7 @@ window.CHECKIN_CONFIG = {
   // ---------- ล็อกอินด้วย Gmail + ฐานข้อมูล Supabase (v2) ----------
   // เปลี่ยนเป็น true หลังตั้งค่า Google ใน Supabase เสร็จ (ดู README หัวข้อ "เปิดล็อกอินด้วย Gmail")
   // ตอนเป็น false เว็บจะใช้โหมด Google Sheet ด้านล่างเหมือนเดิม
-  ENABLE_LOGIN: false,
+  ENABLE_LOGIN: true,
   SUPABASE_URL: "https://rxppmmhqewuiwqiokpes.supabase.co",
   // publishable key ใช้ในหน้าเว็บได้ตามปกติ ข้อมูลถูกป้องกันด้วยสิทธิ์ (RLS) ในฐานข้อมูล
   SUPABASE_KEY: "sb_publishable_DdtlIpOsECP-KSX6oVofHg_mI38241U",
