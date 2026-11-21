@@ -227,9 +227,66 @@ footer{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-conte
 .changelog>li.now .v{background:var(--ink);color:var(--bg)}
 .changelog .d{font-size:12px;color:var(--muted)}
 .changelog ul{grid-column:2;margin:2px 0 0;padding-left:18px;font-size:13.5px;display:flex;flex-direction:column;gap:2px}
+
+/* v2: sign-in gates, late badge */
+.gate{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--bg)}
+.gate-card{width:min(440px,100%);background:var(--surface);border:2px solid var(--ink);border-radius:28px;box-shadow:0 6px 0 var(--ink);padding:26px 22px;display:flex;flex-direction:column;gap:14px;text-align:center;position:relative;overflow:hidden}
+.gate-card.wide{width:min(620px,100%);text-align:left}
+.gate-card::before{content:"";position:absolute;inset:0 0 auto;height:96px;background:var(--pink);background-image:radial-gradient(circle,rgba(255,255,255,.55) 2px,transparent 2.5px);background-size:22px 22px;z-index:0}
+.gate-card.wide::before{height:10px}
+.gate-card>*{position:relative;z-index:1}
+.gate-food{display:flex;justify-content:center;gap:6px;margin-top:4px}
+.gate-food svg{width:52px;height:52px;filter:drop-shadow(0 2px 0 rgba(35,27,32,.25))}
+.gate-food svg:nth-child(2){transform:translateY(10px)}
+.gate-title{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,7vw,40px);line-height:1.15;margin:8px 0 0;text-wrap:balance}
+.gate-title .ink{background:var(--ink);color:var(--bg);padding:0 .25em;border-radius:12px;display:inline-block;transform:rotate(-2deg)}
+.gate-sub{margin:0;color:var(--muted);font-size:14.5px}
+.gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:2px solid var(--ink);background:#FFFFFF;color:#231B20;border-radius:999px;padding:12px 18px;font-weight:600;font-size:16px;box-shadow:0 3px 0 var(--ink);font-family:var(--f-body)}
+.gbtn:active{transform:translateY(3px);box-shadow:none}
+.gbtn:disabled{opacity:.6}
+.claim-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;max-height:46vh;overflow:auto;padding:2px}
+.claim-item{text-align:left;border:2px solid var(--line);background:var(--bg);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.claim-item:hover{border-color:var(--pink-strong)}
+.claim-item b{font-family:var(--f-display);font-weight:600;overflow-wrap:anywhere}
+.claim-item small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.claim-confirm{background:var(--pink-soft);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.claim-confirm .row,.gate-card .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.whoami{display:inline-flex;align-items:center;gap:6px;background:#FFF6F9;border:2px solid #231B20;border-radius:999px;padding:2px 4px 2px 12px;font-size:12.5px;color:#231B20;max-width:100%;min-width:0}
+.whoami>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.whoami button{border:0;background:#231B20;color:#FFF6F9;border-radius:999px;padding:3px 10px;font-size:12px;white-space:nowrap}
+.pill.late{background:var(--butter);color:var(--butter-ink)}
+.sumctl input[type=time]{border:2px solid var(--line);background:var(--bg);border-radius:10px;padding:5px 8px;font-size:14px}
+.gate-card .search{flex:none}
 </style>
 </head>
 <body>
+<section class="gate" id="loginGate" hidden>
+  <div class="gate-card">
+    <div class="gate-food" id="gateFood" aria-hidden="true"></div>
+    <div class="eyebrow" style="justify-content:center">คลาส Claude · เช็คชื่อเข้าเรียน</div>
+    <h1 class="gate-title">Claude <span class="ink">future</span> food</h1>
+    <p class="gate-sub">เข้าสู่ระบบด้วย Gmail เพื่อเช็คชื่อ ครั้งแรกจะให้เลือกชื่อของคุณ แล้ว Gmail นี้จะเช็คชื่อได้เฉพาะชื่อนั้น</p>
+    <button class="gbtn" id="googleBtn"><svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>เข้าสู่ระบบด้วย Google</button>
+    <p class="err" id="loginErr"></p>
+    <p class="hint">ใช้ Gmail ส่วนตัวของคุณ ระบบเก็บเฉพาะอีเมลไว้ผูกกับชื่อ</p>
+  </div>
+</section>
+
+<section class="gate" id="claimGate" hidden>
+  <div class="gate-card wide">
+    <h2 class="gate-title" style="font-size:26px">นี่คือชื่อของคุณไหม?</h2>
+    <p class="gate-sub">เลือกชื่อของคุณ 1 ครั้ง Gmail <b id="claimEmail"></b> จะผูกกับชื่อนี้และเช็คชื่อได้เฉพาะชื่อนี้</p>
+    <label class="search"><span aria-hidden="true">🔍</span><input id="claimQ" type="search" placeholder="พิมพ์ชื่อหรือบริษัท…" aria-label="ค้นหาชื่อ"></label>
+    <div class="claim-list" id="claimList"></div>
+    <div class="claim-confirm" id="claimConfirm" hidden>
+      <span>ยืนยันว่าคุณคือ <b id="claimConfirmName"></b>? เปลี่ยนเองภายหลังไม่ได้</span>
+      <div class="row"><button class="btn ghost" id="claimNo">ไม่ใช่</button><button class="btn primary" id="claimYes">ใช่ ชื่อของฉัน</button></div>
+      <p class="err" id="claimErr"></p>
+    </div>
+    <div class="row" style="justify-content:space-between"><button class="btn ghost" data-logout>ออกจากระบบ</button><button class="btn" id="claimWalk">ไม่มีชื่อ? ลงทะเบียน Walk-in</button></div>
+  </div>
+</section>
+
 <div class="wrap">
   <header class="hero">
     <div class="food-row" aria-hidden="true" id="foodRow"></div>
@@ -242,6 +299,7 @@ footer{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-conte
         <button id="nextDay" aria-label="วันถัดไป">›</button>
       </div>
       <span id="clock" style="font-family:var(--f-display);font-weight:600;font-variant-numeric:tabular-nums"></span>
+      <span class="whoami" id="whoami" hidden><span id="whoEmail"></span><button data-logout>ออกจากระบบ</button></span>
     </div>
   </header>
 
@@ -392,6 +450,7 @@ footer{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-conte
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script>
 // ---------- cute icons ----------
@@ -412,10 +471,11 @@ document.getElementById('panelIcon').innerHTML=ICON.cupcake.replace('<svg','<svg
 document.getElementById('firstIcon').innerHTML=ICON.star.replace('<svg','<svg width="18" height="18"')+' มาคนแรก';
 
 // starting roster for the self-hosted copy (used only when this browser has no names yet)
-const DEFAULT_ROSTER=[]; // รายชื่อจริงอ่านจากแท็บ Roster ใน Google Sheet
+const DEFAULT_ROSTER=[]; // รายชื่อจริงอยู่ในฐานข้อมูล
 // ---------- version (bump APP_VERSION and add a CHANGELOG entry on every release) ----------
-const APP_VERSION='1.6.0';
+const APP_VERSION='2.0.0';
 const CHANGELOG=[
+  {v:'2.0.0',d:'2026-11-21',items:['ล็อกอินด้วย Gmail ผ่าน Supabase ทุกคน','ผูก Gmail กับชื่อของตัวเอง เช็คชื่อได้เฉพาะชื่อตัวเอง','ผู้สอน (indyjanezz@gmail.com) เป็นแอดมินแทน PIN','หน้าแอดมินแยก: ตั้งเวลาเริ่ม/ผ่อนผัน จัดการรายชื่อ สรุปคอร์ส','อัปเดตทันทีทุกเครื่อง (Realtime)','ป้ายมาสายบนการ์ด','ยังส่งสำเนาการเช็คชื่อลง Google Sheet เช็คอิน']},
   {v:'1.6.0',d:'2026-11-14',items:['เชื่อม Google Sheet "เช็คอิน" (แท็บ Roster / Attendance / Data / Settings)','คำนวณสถานะสายจากเวลาเริ่มและเวลาผ่อนผันในแท็บ Settings','ไม่ฝังรายชื่อผู้เรียนไว้ในไฟล์เว็บ']},
   {v:'1.5.0',d:'2026-11-14',items:['ฟีเจอร์ผู้สอนต้องใส่ PIN เสมอ (จัดการรายชื่อ, นำเข้า CSV, สรุป, สุ่มรางวัล)','มือถือนักเรียนเช็คชื่อได้เฉพาะชื่อของตัวเอง','โหมดเครื่องหน้าห้องสำหรับแท็บเล็ตที่ให้หลายคนเช็คชื่อ','แสดงเลขเวอร์ชันและประวัติการอัปเดต']},
   {v:'1.4.0',d:'2026-11-14',items:['รองรับบันทึกลง Google Sheet ผ่าน Google Apps Script','ไฟล์พร้อมขึ้น GitHub Pages']},
@@ -451,6 +511,7 @@ function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTim
 function banner(msg){const b=$('banner');if(msg){b.textContent=msg;b.hidden=false}else b.hidden=true}
 function errMsg(e){
   const c=e&&e.code;
+  if(S.mode==='supa'&&typeof supaErr!=='undefined'&&supaErr[c])return supaErr[c];
   if(c==='permission_denied'||c==='not_granted') return 'บันทึกไม่ได้ เพราะบัญชีนี้ยังไม่มีสิทธิ์ ขอให้เจ้าของแชร์ลิงก์แบบใช้งาน/แก้ไขได้';
   if(c==='unavailable') return 'เชื่อมต่อไม่ได้ตอนนี้ ลองใหม่อีกครั้ง';
   if(c==='quota_exceeded') return 'พื้นที่เก็บข้อมูลเต็มแล้ว';
@@ -482,11 +543,11 @@ $('prevDay').onclick=()=>shift(-1);$('nextDay').onclick=()=>shift(1);
 const isToday=()=>S.date===ymd(new Date());
 
 // ---------- admin / PIN ----------
-const canAdmin=()=>S.mode!=='claude'||S.canEdit;
+const canAdmin=()=>S.mode==='supa'?!!S.admin:(S.mode!=='claude'||S.canEdit);
 const cfgPin=()=>String((window.CHECKIN_CONFIG||{}).TEACHER_PIN||'').trim();
 const hasPin=()=>!!(S.settings.pinHash||cfgPin());
 // outside Claude anyone can open the page, so teacher tools always need the PIN
-const isAdmin=()=>canAdmin()&&(S.unlocked||(S.mode==='claude'&&!S.settings.pinHash));
+const isAdmin=()=>S.mode==='supa'?(!!S.admin&&!S.adminHidden):(canAdmin()&&(S.unlocked||(S.mode==='claude'&&!S.settings.pinHash)));
 
 // ---------- this device (a student's phone checks in only one name) ----------
 const DEV={
@@ -495,9 +556,9 @@ const DEV={
   get kiosk(){try{return localStorage.getItem('cff-kiosk')==='1'}catch(e){return false}},
   set kiosk(v){try{v?localStorage.setItem('cff-kiosk','1'):localStorage.removeItem('cff-kiosk')}catch(e){}}
 };
-const personal=()=>!isAdmin()&&!DEV.kiosk;          // one-person phone
-const myId=()=>{const m=DEV.me;return m&&S.students.some(s=>s.id===m.id)?m.id:null};
-const canActFor=id=>!personal()||!myId()||myId()===id;
+const personal=()=>S.mode==='supa'?!S.admin:(!isAdmin()&&!DEV.kiosk);          // one-person phone
+const myId=()=>{if(S.mode==='supa'){const me=S.students.find(s=>s.userId&&s.userId===S.uid);return me?me.id:null}const m=DEV.me;return m&&S.students.some(s=>s.id===m.id)?m.id:null};
+const canActFor=id=>S.mode==='supa'?(!!S.admin||myId()===id):(!personal()||!myId()||myId()===id);
 let idleT=null;
 function bumpIdle(){if(!S.unlocked)return;clearTimeout(idleT);idleT=setTimeout(()=>{lock();toast('ล็อกโหมดผู้สอนอัตโนมัติแล้ว')},15*60*1000)}
 ['pointerdown','keydown'].forEach(t=>document.addEventListener(t,bumpIdle,{passive:true}));
@@ -514,9 +575,9 @@ function openPin(mode){
   $('pinSub').textContent=mode==='unlock'?'ปลดล็อกเพื่อจัดการรายชื่อ นำเข้า CSV ดูสรุป และสุ่มรางวัล':mode==='set'&&!S.unlocked?'ยังไม่มี PIN ผู้สอน ตั้ง PIN ตัวเลข 4–8 หลักตอนนี้ (ควรตั้งก่อนแชร์ลิงก์ให้นักเรียน)':'ใช้ตัวเลข 4–8 หลัก ใครที่ไม่มี PIN จะเห็นแค่หน้าเช็คชื่อ';
   openModal('pinModal');
 }
-$('teacherBtn').onclick=()=>openPin(hasPin()?'unlock':'set');
+$('teacherBtn').onclick=()=>{if(S.mode==='supa'){S.adminHidden=false;render();return}openPin(hasPin()?'unlock':'set')};
 $('pinBtn').onclick=()=>openPin(S.settings.pinHash?'change':'set');
-$('lockBtn').onclick=()=>{lock();toast('ล็อกแล้ว')};
+$('lockBtn').onclick=()=>{if(S.mode==='supa'){S.adminHidden=true;$('panel').hidden=true;if(S.view==='summary')setView('roll');render();toast('ซ่อนเมนูแอดมินแล้ว เครื่องนี้ยังเช็คชื่อแทนทุกคนได้');return}lock();toast('ล็อกแล้ว')};
 $('kioskBtn').onclick=()=>{if(!isAdmin())return;DEV.kiosk=!DEV.kiosk;if(DEV.kiosk)DEV.me=null;render();toast(DEV.kiosk?'เครื่องนี้เป็นเครื่องหน้าห้อง: ทุกคนมาเช็คชื่อที่เครื่องนี้ได้':'เครื่องนี้กลับเป็นเครื่องส่วนตัว: เช็คชื่อได้ 1 คน')};
 $('unbindBtn').onclick=()=>{if(!isAdmin())return;DEV.me=null;render();toast('ล้างชื่อที่ผูกกับเครื่องนี้แล้ว')};
 $('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')(pinMode==='unlock'?$('pinOk'):$('pinInput2')).click()});
@@ -541,22 +602,29 @@ $('pinRemove').onclick=async()=>{
 };
 
 // ---------- derive ----------
+// minutes late beyond the grace period (Supabase stores minutes after start time)
+function lateOf(c){if(S.mode!=='supa'||!c||c.late==null)return 0;const g=Number(S.settings.grace??15);return c.late>g?c.late:0}
 function statusOf(id){const c=S.checks[id];if(!c||!c.inAt)return 'wait';return c.outAt?'out':'in'}
 function firstId(){let best=null,bt=Infinity;for(const s of S.students){const c=S.checks[s.id];if(c&&c.inAt&&c.inAt<bt){bt=c.inAt;best=s.id}}return best}
 
 // ---------- render ----------
 function render(){
+  if(S.mode==='supa'&&needClaim()){showGate('claimGate');renderClaim();return}
+  if(S.mode==='supa'&&!$('claimGate').hidden)showGate(null);
   const admin=isAdmin();
   $('adminBar').hidden=!admin;
+  const supa=S.mode==='supa';
   $('teacherBtn').hidden=admin||!canAdmin()||(S.mode==='claude'&&!S.settings.pinHash);
-  $('lockBtn').hidden=!S.unlocked;
+  $('teacherBtn').textContent=supa?'⚙️ แอดมิน':'🔐 ผู้สอน';
+  $('lockBtn').hidden=supa?!admin:!S.unlocked;$('lockBtn').textContent=supa?'ซ่อนเมนูแอดมิน':'🔒 ล็อก';
+  $('pinBtn').hidden=supa;$('kioskBtn').hidden=supa;
   $('kioskBtn').textContent=DEV.kiosk?'📱 เครื่องหน้าห้อง: เปิด':'📱 เครื่องหน้าห้อง: ปิด';$('kioskBtn').classList.toggle('on',DEV.kiosk);
-  $('unbindBtn').hidden=!DEV.me;
+  $('unbindBtn').hidden=supa||!DEV.me;
   const me=myId()&&personal()?S.students.find(s=>s.id===myId()):null;
-  $('meNote').hidden=!me;if(me)$('meNote').innerHTML=`เครื่องนี้เช็คชื่อในนาม <b>${esc(me.name)}</b> · กด Clock in / Clock out ได้เฉพาะชื่อนี้`;
+  $('meNote').hidden=!me;if(me)$('meNote').innerHTML=supa?`Gmail นี้ผูกกับชื่อ <b>${esc(me.name)}</b> · กด Clock in / Clock out ได้เฉพาะชื่อนี้`:`เครื่องนี้เช็คชื่อในนาม <b>${esc(me.name)}</b> · กด Clock in / Clock out ได้เฉพาะชื่อนี้`;
   $('pinBtn').textContent=S.settings.pinHash?'เปลี่ยน PIN':'ตั้ง PIN';
   $('viewBtn').classList.toggle('on',S.view==='summary');
-  $('viewBtn').textContent=S.view==='summary'?'← กลับหน้าเช็คชื่อ':'📊 สรุปทั้งคอร์ส';
+  $('viewBtn').textContent=S.view==='summary'?'← กลับหน้าเช็คชื่อ':(supa?'🛠️ หน้าแอดมิน':'📊 สรุปทั้งคอร์ส');
   $('manageBtn').classList.toggle('on',!$('panel').hidden);
   if(!admin)$('panel').hidden=true;
   $('rollView').hidden=S.view!=='roll';$('sumView').hidden=S.view!=='summary';
@@ -587,7 +655,7 @@ function cardHTML(s,fid,admin){
   const st=statusOf(s.id),c=S.checks[s.id]||{},first=s.id===fid,busy=S.busy.has(s.id);
   const food=ICON[FOODS[s.idx%FOODS.length]];
   const pill=st==='wait'?`<span class="pill wait">ยังไม่มา</span>`:st==='in'?`<span class="pill in">● อยู่ในคลาส</span>`:`<span class="pill out">กลับแล้ว</span>`;
-  const walk=s.walkin?` <span class="pill walk">Walk-in</span>`:'';
+  const walk=(s.walkin?` <span class="pill walk">Walk-in</span>`:'')+(c.inAt&&lateOf(c)>0?` <span class="pill late">สาย ${lateOf(c)} นาที</span>`:'');
   const can=canActFor(s.id),mine=personal()&&myId()===s.id;
   const inSlot=c.inAt?`<span class="t">${fmtT(c.inAt)}</span>`:(can?`<button class="btn primary" data-act="in" data-id="${s.id}" ${busy?'disabled':''}>Clock in</button>`:`<span class="t empty">--:--</span>`);
   const outSlot=c.outAt?`<span class="t">${fmtT(c.outAt)}</span>`:(c.inAt&&can?`<button class="btn" data-act="out" data-id="${s.id}" ${busy?'disabled':''}>Clock out</button>`:`<span class="t empty">--:--</span>`);
@@ -616,7 +684,7 @@ function bindEmpty(){
 }
 function renderRoster(){
   if($('panel').hidden)return;
-  $('roster').innerHTML=S.students.length?S.students.map((s,i)=>`<div class="roster-item"><span>${i+1}. ${esc(s.name)}${s.company?` <em class="hint">· ${esc(s.company)}</em>`:''}${s.walkin?' <em class="hint">· Walk-in</em>':''}</span><button data-del="${s.id}">ลบ</button></div>`).join(''):`<span class="hint">ยังไม่มีชื่อ</span>`;
+  $('roster').innerHTML=S.students.length?S.students.map((s,i)=>`<div class="roster-item"><span>${i+1}. ${esc(s.name)}${s.company?` <em class="hint">· ${esc(s.company)}</em>`:''}${s.walkin?' <em class="hint">· Walk-in</em>':''}${S.mode==='supa'?(s.email?` <em class="hint">· ✉️ ${esc(s.email)}</em>`:' <em class="hint">· ยังไม่ผูก Gmail</em>'):''}</span>${S.mode==='supa'&&s.userId?`<button data-unlink="${s.id}">ยกเลิกผูก</button>`:''}<button data-del="${s.id}">ลบ</button></div>`).join(''):`<span class="hint">ยังไม่มีชื่อ</span>`;
 }
 
 // ---------- roll actions ----------
@@ -663,7 +731,7 @@ $('sigOk').onclick=async()=>{
   $('sigOk').disabled=true;$('sigOk').textContent='กำลังบันทึก…';S.busy.add(id);
   try{
     await S.db.doc(`days/${date}/checks/${id}`).set({studentId:id,name,inAt:Date.now(),sig:data});
-    if(personal()&&!myId())DEV.me={id,name};
+    if(S.mode!=='supa'&&personal()&&!myId())DEV.me={id,name};
     closeModal('sigModal');toast(`ยินดีต้อนรับ ${name} 🌸`);noteDay(date);
   }catch(err){toast(errMsg(err));$('sigOk').disabled=false;$('sigOk').textContent='ยืนยัน Clock in'}
   S.busy.delete(id);render();
@@ -687,11 +755,13 @@ $('walkOk').onclick=async()=>{
   if(dup){$('walkErr').textContent='มีชื่อนี้ในรายการแล้ว ค้นหาชื่อของคุณแล้วกด Clock in ได้เลย';S.q=name;$('q').value=name;render();return}
   $('walkOk').disabled=true;
   try{
-    const order=S.students.reduce((m,s)=>Math.max(m,s.order||0),0)+1;
-    const ref=S.db.collection('students').doc();
-    const doc={name,order,walkin:true,createdAt:Date.now()};if(company)doc.company=company;
-    await ref.set(doc);
-    closeModal('walkModal');S.q='';$('q').value='';openSig(ref.id,name);
+    let newId;
+    if(S.db.walkin)newId=await S.db.walkin(name,company);
+    else{const order=S.students.reduce((m,s)=>Math.max(m,s.order||0),0)+1;
+      const ref=S.db.collection('students').doc();
+      const doc={name,order,walkin:true,createdAt:Date.now()};if(company)doc.company=company;
+      await ref.set(doc);newId=ref.id}
+    closeModal('walkModal');S.q='';$('q').value='';openSig(newId,name);
   }catch(err){$('walkErr').textContent=errMsg(err)}
   $('walkOk').disabled=false;
 };
@@ -737,8 +807,19 @@ function renderSummary(){
   const v=$('sumView');const {days,pct,rows}=summaryRows();
   const okCount=rows.filter(r=>r.ok).length;
   const custom=Array.isArray(S.settings.courseDays)&&S.settings.courseDays.length;
+  const supa=S.mode==='supa';
+  const linked=S.students.filter(s=>s.userId).length;
   v.innerHTML=`
-  <div class="sumhead"><div><h2>สรุปทั้งคอร์ส</h2><span class="hint">${days.length} วันเรียน · ได้ใบประกาศ ${okCount} จาก ${rows.length} คน (เข้าเรียนอย่างน้อย ${pct}%)</span></div>
+  ${supa?`<div class="sumhead"><div><h2>หน้าแอดมิน</h2><span class="hint">ล็อกอินเป็น ${esc(S.email)} · ผูก Gmail แล้ว ${linked} จาก ${S.students.length} คน</span></div>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="admRoster">👥 จัดการรายชื่อ</button><button class="btn" id="admDraw">🎡 สุ่มรางวัล</button><button class="btn" id="admCsv">⬇ CSV วันนี้</button></div></div>
+  <div class="sumctl">
+    <div class="row"><b style="font-family:var(--f-display)">เวลาเรียน</b><span class="hint">ใช้คิดว่าใครมาสาย</span></div>
+    <div class="row"><label class="toggle">เริ่มเรียน <input type="time" id="setStart" value="${esc(S.settings.start||'09:00')}"></label>
+      <label class="toggle">ผ่อนผัน <input type="number" id="setGrace" min="0" max="180" value="${Number(S.settings.grace??15)}"> นาที</label>
+      <button class="btn primary" id="saveTime">บันทึกเวลา</button></div>
+    <p class="hint" style="margin:0">เช็คชื่อหลัง ${esc(S.settings.start||'09:00')} เกิน ${Number(S.settings.grace??15)} นาที จะขึ้นป้าย “สาย” บนการ์ด</p>
+  </div>`:''}
+  <div class="sumhead"><div><h2>${supa?'สรุปทั้งคอร์ส':'สรุปทั้งคอร์ส'}</h2><span class="hint">${days.length} วันเรียน · ได้ใบประกาศ ${okCount} จาก ${rows.length} คน (เข้าเรียนอย่างน้อย ${pct}%)</span></div>
     <button class="btn" id="sumCsv">⬇ CSV สรุปทั้งคอร์ส</button></div>
   <div class="sumctl">
     <div class="row"><b style="font-family:var(--f-display)">วันเรียน</b><span class="hint">${custom?'กำหนดเอง':'นับจากวันที่มีคนเช็คชื่อ'}</span></div>
@@ -756,6 +837,13 @@ function renderSummary(){
   </table></div>`;
   v.querySelectorAll('[data-rmday]').forEach(b=>b.onclick=async()=>{const list=courseDays().filter(d=>d!==b.dataset.rmday);try{await saveSettings({courseDays:list.length?list:['_none']});}catch(err){toast(errMsg(err))}});
   $('addDayBtn').onclick=async()=>{const d=$('addDay').value;if(!d)return;const list=[...new Set([...courseDays(),d])].filter(x=>x!=='_none').sort();try{await saveSettings({courseDays:list});loadSummary()}catch(err){toast(errMsg(err))}};
+  if(supa){
+    $('saveTime').onclick=async()=>{const st=$('setStart').value||'09:00',g=Math.max(0,Math.min(180,Number($('setGrace').value)||0));
+      try{await saveSettings({start:st,grace:g});toast('บันทึกเวลาเรียนแล้ว')}catch(err){toast(errMsg(err))}};
+    $('admRoster').onclick=()=>{$('panel').hidden=false;renderRoster();$('panel').scrollIntoView({behavior:'smooth'})};
+    $('admDraw').onclick=()=>$('drawBtn').click();
+    $('admCsv').onclick=()=>$('exportBtn').click();
+  }
   $('certPct').onchange=async e=>{const n=Math.max(1,Math.min(100,Number(e.target.value)||80));try{await saveSettings({certPct:n})}catch(err){toast(errMsg(err))}};
   $('sumCsv').onclick=()=>{
     const head=['ลำดับ','ชื่อ','บริษัท','Walk-in',...days,'วันที่มา','เปอร์เซ็นต์','ใบประกาศ'];
@@ -848,6 +936,8 @@ $('fileInput').addEventListener('change',async e=>{
   }catch(err){toast('อ่านไฟล์ไม่ได้ ลองบันทึกเป็น .csv หรือ .xlsx อีกครั้ง')}
 });
 $('roster').addEventListener('click',async e=>{
+  const u=e.target.closest('[data-unlink]');
+  if(u){if(!arm(u,'ยกเลิกผูก','แตะอีกครั้งเพื่อยืนยัน'))return;try{await S.db.doc(`students/${u.dataset.unlink}`).update({unlink:true});toast('ยกเลิกการผูก Gmail แล้ว คนนั้นเลือกชื่อใหม่ได้')}catch(err){toast(errMsg(err))}return}
   const b=e.target.closest('[data-del]');if(!b||!arm(b,'ลบ','ยืนยันลบ'))return;
   try{await S.db.doc(`students/${b.dataset.del}`).delete();toast('ลบชื่อแล้ว')}catch(err){toast(errMsg(err))}
 });
@@ -913,6 +1003,146 @@ function extractPeople(rows){
     }
   }
   return out;
+}
+
+// ---------- Supabase mode (Gmail login + database + realtime) ----------
+function supaDB(sb){
+  const subs=new Set();let timer=null;
+  const store={students:[],checks:{},checksDay:null,settings:{},draws:{},days:[]};
+  const meta={fromCache:false,hasPendingWrites:false};
+  const ms=t=>t?Date.parse(t):0;
+  const err=(e)=>{const x=new Error(e.message||String(e));x.code=e.code==='42501'?'permission_denied':(e.message||'').match(/not_your_name|already_|name_taken|name_exists|no_such|signature/)?.[0]||'unavailable';x.raw=e.message;return x};
+  const emit=()=>subs.forEach(f=>f());
+  async function loadStudents(){const {data,error}=await sb.from('students').select('id,name,company,walkin,sort,user_id,email').order('sort');if(error)throw error;
+    store.students=data.map(r=>({id:r.id,name:r.name,company:r.company||'',walkin:r.walkin,order:r.sort,userId:r.user_id,email:r.email}))}
+  const mapCheck=r=>({studentId:r.student_id,inAt:ms(r.in_at),outAt:ms(r.out_at),late:r.late_min,...(r.sig?{sig:r.sig}:{})});
+  async function loadChecks(day){const {data,error}=await sb.from('checks').select('student_id,in_at,out_at,late_min,sig').eq('day',day);if(error)throw error;
+    const m={};data.forEach(r=>m[r.student_id]=mapCheck(r));store.checks=m;store.checksDay=day}
+  async function loadSettings(){const {data,error}=await sb.from('settings').select('key,value');if(error)throw error;
+    const o={};data.forEach(r=>o[r.key]=r.value);store.settings=o}
+  async function loadDays(){const {data,error}=await sb.from('checks').select('day');if(error)throw error;store.days=[...new Set(data.map(r=>r.day))]}
+  async function loadDraw(day){const {data}=await sb.from('draws').select('winners').eq('day',day).maybeSingle();store.draws[day]=data?data.winners:[]}
+  async function refresh(what){
+    try{
+      const day=S.date;const jobs=[];
+      if(!what||what==='students')jobs.push(loadStudents());
+      if(!what||what==='checks')jobs.push(loadChecks(day),loadDays());
+      if(!what||what==='settings')jobs.push(loadSettings());
+      if(!what||what==='draws')jobs.push(loadDraw(day));
+      await Promise.all(jobs);banner('');emit();
+    }catch(e){banner('เชื่อมต่อฐานข้อมูลไม่ได้ กำลังลองใหม่…');clearTimeout(timer);timer=setTimeout(()=>refresh(what),5000)}
+  }
+  // live updates from every device
+  const queue=new Set();let qT=null;
+  const bump=t=>{queue.add(t);clearTimeout(qT);qT=setTimeout(()=>{const q=[...queue];queue.clear();q.forEach(x=>refresh(x))},250)};
+  sb.channel('classcheckin').on('postgres_changes',{event:'*',schema:'public',table:'students'},()=>bump('students'))
+    .on('postgres_changes',{event:'*',schema:'public',table:'checks'},()=>bump('checks'))
+    .on('postgres_changes',{event:'*',schema:'public',table:'settings'},()=>bump('settings'))
+    .on('postgres_changes',{event:'*',schema:'public',table:'draws'},()=>bump('draws'))
+    .subscribe(st=>{if(st==='CHANNEL_ERROR'||st==='TIMED_OUT')banner('การอัปเดตทันทีหลุด ข้อมูลจะดึงใหม่ทุก 30 วินาที')});
+  setInterval(()=>{if(document.visibilityState!=='hidden')refresh()},30000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
+
+  const settingsDoc=()=>{const s=store.settings;const o={};
+    if(s.course_days&&s.course_days.length)o.courseDays=s.course_days;if(s.cert_pct)o.certPct=s.cert_pct;if(s.qr_url)o.qrUrl=s.qr_url;
+    o.start=s.start||'09:00';o.grace=Number(s.grace??15);return o};
+  async function writeSettings(d){
+    const map={courseDays:'course_days',certPct:'cert_pct',qrUrl:'qr_url',start:'start',grace:'grace'};
+    const rows=[],dels=[];
+    Object.entries(map).forEach(([k,col])=>{if(!(k in d))return;const v=d[k];if(v===undefined||v===null)dels.push(col);else rows.push({key:col,value:Array.isArray(v)?v.filter(x=>x!=='_none'):v})});
+    if(rows.length){const {error}=await sb.from('settings').upsert(rows);if(error)throw err(error)}
+    if(dels.length){const {error}=await sb.from('settings').delete().in('key',dels);if(error)throw err(error)}
+    await refresh('settings');
+  }
+  const split=p=>p.split('/');
+  function docRef(path){const seg=split(path);const id=seg[seg.length-1];return{id,path,
+    async get(){return dsnap(path)},
+    async set(d){
+      if(seg[0]==='days'){ // check in → server function with server time
+        const {error}=await sb.rpc('check_in',{p_student:seg[3],p_sig:d.sig||null});if(error)throw err(error);return refresh('checks')}
+      if(seg[0]==='students'){const row={id,name:d.name,company:d.company||'',walkin:!!d.walkin,sort:d.order||0};
+        const {error}=await sb.from('students').upsert(row);if(error)throw err(error);return refresh('students')}
+      if(path==='settings/main')return writeSettings({courseDays:null,certPct:null,qrUrl:null,...d});
+      if(seg[0]==='draws'){const {error}=await sb.from('draws').upsert({day:id,winners:d.winners||[]});if(error)throw err(error);return refresh('draws')}
+      if(seg[0]==='daylog')return; // days come from the checks table
+    },
+    async update(d){
+      if(seg[0]==='days'&&'outAt' in d){const {error}=await sb.rpc('check_out',{p_student:seg[3]});if(error)throw err(error);return refresh('checks')}
+      if(seg[0]==='students'){const row={};if('name'in d)row.name=d.name;if('company'in d)row.company=d.company;if('unlink'in d){row.user_id=null;row.email=null}
+        const {error}=await sb.from('students').update(row).eq('id',id);if(error)throw err(error);return refresh('students')}
+      if(path==='settings/main')return writeSettings(d);
+    },
+    async delete(){
+      if(seg[0]==='days'){const {error}=await sb.from('checks').delete().eq('day',seg[1]).eq('student_id',seg[3]);if(error)throw err(error);return refresh('checks')}
+      if(seg[0]==='students'){const {error}=await sb.from('students').delete().eq('id',id);if(error)throw err(error);return refresh('students')}
+    },
+    onSnapshot(next){const f=()=>next(dsnap(path));subs.add(f);setTimeout(f,0);return()=>subs.delete(f)}}}
+  function dsnap(path){const seg=split(path);let d=null;
+    if(path==='settings/main')d=settingsDoc();
+    else if(seg[0]==='draws')d={winners:store.draws[seg[1]]||[]};
+    else if(seg[0]==='days'&&seg[1]===store.checksDay)d=store.checks[seg[3]]||null;
+    return{id:seg[seg.length-1],exists:!!d,data:()=>d&&JSON.parse(JSON.stringify(d)),metadata:meta}}
+  function qsnap(col){let docs=[];
+    if(col==='students')docs=store.students.map(s=>({id:s.id,exists:true,data:()=>({...s}),metadata:meta}));
+    else if(col==='daylog')docs=store.days.map(d=>({id:d,exists:true,data:()=>({date:d}),metadata:meta}));
+    else{const seg=split(col);if(seg[0]==='days'&&seg[1]===store.checksDay)docs=Object.entries(store.checks).map(([id,d])=>({id,exists:true,data:()=>({...d}),metadata:meta}))}
+    return{docs,size:docs.length,empty:!docs.length,metadata:meta}}
+  function query(col){return{path:col,orderBy:()=>query(col),
+    async get(){const seg=split(col);
+      if(seg[0]==='days'&&seg[1]!==store.checksDay){const {data,error}=await sb.from('checks').select('student_id,in_at,out_at,late_min').eq('day',seg[1]);if(error)throw err(error);
+        const docs=data.map(r=>({id:r.student_id,exists:true,data:()=>mapCheck(r),metadata:meta}));return{docs,size:docs.length,empty:!docs.length,metadata:meta}}
+      return qsnap(col)},
+    onSnapshot(next){const f=()=>next(qsnap(col));subs.add(f);setTimeout(f,0);return()=>subs.delete(f)},
+    async add(d){if(col==='students'){const {data,error}=await sb.from('students').insert({name:d.name,company:d.company||'',sort:d.order||0}).select('id').single();if(error)throw err(error);await refresh('students');return docRef('students/'+data.id)}},
+    doc:id=>docRef(col+'/'+(id||''))}}
+  return{collection:query,doc:docRef,refresh,
+    async walkin(name,company){const {data,error}=await sb.rpc('register_walkin',{p_name:name,p_company:company||''});if(error)throw err(error);await refresh('students');return data},
+    async claim(id){const {error}=await sb.rpc('claim_student',{p_student:id});if(error)throw err(error);await refresh('students')},
+    get settingsRaw(){return store.settings}};
+}
+
+// ---------- sign-in screens ----------
+const supaErr={not_your_name:'เช็คชื่อได้เฉพาะชื่อที่ผูกกับ Gmail ของคุณ',already_linked:'Gmail นี้ผูกกับชื่ออื่นไว้แล้ว ติดต่อผู้สอนเพื่อแก้',name_taken:'ชื่อนี้มีคนผูก Gmail ไว้แล้ว ถ้าเป็นชื่อของคุณ ติดต่อผู้สอน',name_exists:'มีชื่อนี้ในรายชื่อแล้ว ให้เลือกจากรายการ',already_checked_in:'เช็คชื่อวันนี้ไปแล้ว',signature_required:'กรุณาเซ็นชื่อก่อนยืนยัน',not_checked_in:'ยังไม่ได้ Clock in',permission_denied:'บัญชีนี้ไม่มีสิทธิ์ทำรายการนี้'};
+function showGate(which){['loginGate','claimGate'].forEach(id=>$(id).hidden=id!==which);document.querySelector('.wrap').hidden=!!which}
+async function startSupabase(cfg){
+  if(!window.supabase){banner('โหลดระบบล็อกอินไม่ได้ ตรวจการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรช');return false}
+  const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
+  S.sb=sb;
+  $('googleBtn').onclick=async()=>{
+    $('googleBtn').disabled=true;$('loginErr').textContent='';
+    const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href.split('#')[0].split('?')[0],queryParams:{prompt:'select_account'}}});
+    if(error){$('googleBtn').disabled=false;$('loginErr').textContent='เปิดหน้าล็อกอิน Google ไม่ได้: '+error.message}
+  };
+  document.querySelectorAll('[data-logout]').forEach(b=>b.onclick=async()=>{await sb.auth.signOut();location.reload()});
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){showGate('loginGate');return false}
+  sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT')location.reload()});
+  S.uid=session.user.id;S.email=session.user.email||'';
+  const {data:adm}=await sb.rpc('is_admin');S.admin=!!adm;
+  $('whoami').hidden=false;$('whoEmail').textContent=S.email;
+  if(location.search.includes('code='))history.replaceState(null,'',location.pathname+location.hash);
+  return true;
+}
+// a signed-in student who has not picked their name yet
+function needClaim(){return S.mode==='supa'&&!S.admin&&S.stLoaded&&!S.students.some(s=>s.userId===S.uid)}
+function renderClaim(){
+  const q=($('claimQ').value||'').trim().toLowerCase();
+  const free=S.students.filter(s=>!s.userId&&(!q||s.name.toLowerCase().includes(q)||(s.company||'').toLowerCase().includes(q)));
+  $('claimEmail').textContent=S.email;
+  $('claimList').innerHTML=free.length?free.map(s=>`<button class="claim-item" data-claim="${s.id}"><b>${esc(s.name)}</b>${s.company?`<small>${esc(s.company)}</small>`:''}</button>`).join(''):`<p class="hint">ไม่พบชื่อที่ยังว่าง ถ้าไม่มีชื่อของคุณ ลงทะเบียน Walk-in ด้านล่าง</p>`;
+}
+let claimPick=null;
+function bindClaim(){
+  $('claimQ').addEventListener('input',renderClaim);
+  $('claimList').addEventListener('click',e=>{const b=e.target.closest('[data-claim]');if(!b)return;
+    claimPick=b.dataset.claim;const s=S.students.find(x=>x.id===claimPick);
+    $('claimConfirmName').textContent=s.name;$('claimConfirm').hidden=false;$('claimErr').textContent='';});
+  $('claimNo').onclick=()=>{$('claimConfirm').hidden=true;claimPick=null};
+  $('claimYes').onclick=async()=>{if(!claimPick)return;$('claimYes').disabled=true;
+    try{await S.db.claim(claimPick);$('claimConfirm').hidden=true;showGate(null);toast('ผูก Gmail กับชื่อของคุณแล้ว 🌸');render()}
+    catch(e){$('claimErr').textContent=supaErr[e.code]||('ทำรายการไม่สำเร็จ: '+(e.raw||e.message))}
+    $('claimYes').disabled=false};
+  $('claimWalk').onclick=()=>{showGate(null);openWalk()};
 }
 
 // ---------- local storage mode (when hosted on your own server) ----------
@@ -1019,7 +1249,13 @@ function subscribeDay(){
   const [db,user,dl]=await Promise.all([use('db'),use('user'),use('downloads')]);
   S.db=db;S.user=user;S.downloads=dl;S.canEdit=user?.canEdit()??false;
   const cfg=window.CHECKIN_CONFIG||{};
-  if(db)S.mode='claude';
+  if(!db&&cfg.ENABLE_LOGIN&&cfg.SUPABASE_URL&&cfg.SUPABASE_KEY){
+    S.mode='supa';S.local=true;S.downloads=localDownloads;
+    $('gateFood').innerHTML=ICON.strawberry+ICON.onigiri+ICON.cupcake;bindClaim();
+    if(!(await startSupabase(cfg)))return;      // login screen is showing
+    S.db=supaDB(S.sb);await S.db.refresh();
+  }
+  else if(db)S.mode='claude';
   else if(cfg.SHEETS_API_URL&&/^https?:\/\//.test(cfg.SHEETS_API_URL.trim())){S.db=sheetsDB(cfg);S.local=true;S.mode='sheets';S.downloads=localDownloads}
   else{S.db=localDB();S.local=true;S.mode='local';S.downloads=localDownloads;$('localNote').hidden=false}
   if(!S.downloads)$('exportBtn').hidden=true;
@@ -1037,6 +1273,10 @@ function subscribeDay(){
     if(S.view==='summary')render();
   },()=>{});
   subscribeDay();
+  if(S.mode==='supa'){ // admin page link: …/#admin
+    const route=()=>{if(location.hash==='#admin'&&isAdmin()&&S.view!=='summary')setView('summary')};
+    setTimeout(route,400);window.addEventListener('hashchange',route);
+  }
   S._lastToday=ymd(new Date());
   setInterval(()=>{const t=ymd(new Date());if(S._lastToday!==t&&S.date===S._lastToday)setDate(t);S._lastToday=t},60000);
 })();

@@ -24,6 +24,8 @@
 | `students.csv` | รายชื่อนักเรียนเริ่มต้น 22 คน สำรองไว้นำเข้า |
 | `.nojekyll` | ให้ GitHub Pages เสิร์ฟไฟล์ตรง ๆ |
 | `CHANGELOG.md` | ประวัติเวอร์ชัน |
+| `admin.html` | ทางลัดไปหน้าแอดมิน (โหมดล็อกอิน) |
+| `supabase/schema.sql` | โครงสร้างฐานข้อมูล Supabase (ตั้งไว้แล้ว เก็บไว้อ้างอิง) |
 
 ## ขั้นที่ 1 · เตรียม Google Sheet
 
@@ -68,6 +70,45 @@ window.CHECKIN_CONFIG = {
    - Branch: `main` / `/ (root)` แล้วกด Save
 4. รอประมาณ 1–2 นาที เว็บจะอยู่ที่ https://janepp1.github.io/classcheckin/
 5. เปิดเว็บ กด **🔐 ผู้สอน / ตั้ง PIN** แล้วกด **▦ QR หน้าห้อง** เพื่อแสดง QR ให้นักเรียนสแกน
+
+## เปิดล็อกอินด้วย Gmail (v2 · Supabase)
+
+ตั้งแต่ v2.0.0 เว็บรองรับการล็อกอินด้วย Gmail และใช้ Supabase เป็นฐานข้อมูลหลัก
+- **นักเรียน:** ล็อกอินด้วย Gmail ครั้งแรกเลือกชื่อของตัวเอง 1 ครั้ง จากนั้น Gmail นั้นเช็คชื่อได้เฉพาะชื่อนั้น
+- **แอดมิน:** `indyjanezz@gmail.com` เป็นแอดมิน (แทน PIN) เข้าหน้าแอดมินได้ที่ปุ่ม 🛠️ หรือ `admin.html`
+- **หน้าแอดมิน:** ตั้งเวลาเริ่มเรียนและเวลาผ่อนผัน (ใช้คิดป้าย "สาย"), จัดการรายชื่อ, ดูว่าใครผูก Gmail แล้ว, ยกเลิกการผูก, สรุปคอร์ส, สุ่มรางวัล, ดาวน์โหลด CSV
+- **อัปเดตทันที:** ทุกเครื่องเห็นการเช็คชื่อใหม่ทันที (Realtime)
+- **Google Sheet:** Supabase ส่งสำเนาทุกการเช็คชื่อไปที่ชีต "เช็คอิน" ให้อัตโนมัติ
+
+โปรเจกต์ Supabase: `classcheckin` (ภูมิภาคสิงคโปร์) ตาราง สิทธิ์ และรายชื่อ 22 คน ตั้งไว้แล้ว ดูโครงสร้างได้ที่ `supabase/schema.sql`
+
+### ขั้นที่ต้องทำเอง: เชื่อม Google กับ Supabase (ครั้งเดียว ~10 นาที)
+
+**1. สร้าง OAuth Client ใน Google Cloud**
+1. เปิด https://console.cloud.google.com/ แล้วสร้างโปรเจกต์ใหม่ (หรือเลือกโปรเจกต์ที่มี)
+2. ไปที่ **APIs & Services → OAuth consent screen** กด **Get started** เลือก **External** กรอกชื่อแอป (เช่น Claude future food) และอีเมลติดต่อ
+3. ในส่วน **Audience** กด **Publish app** (ถ้าไม่ publish จะล็อกอินได้เฉพาะอีเมลที่เพิ่มเป็น test user)
+4. ไปที่ **APIs & Services → Credentials → Create Credentials → OAuth client ID**
+   - Application type: **Web application**
+   - Authorized JavaScript origins: `https://janepp1.github.io`
+   - Authorized redirect URIs: `https://rxppmmhqewuiwqiokpes.supabase.co/auth/v1/callback`
+5. กด **Create** แล้วคัดลอก **Client ID** และ **Client secret**
+
+**2. ใส่ใน Supabase**
+1. เปิด https://supabase.com/dashboard/project/rxppmmhqewuiwqiokpes/auth/providers
+2. เปิด **Google** วาง Client ID และ Client secret แล้วกด Save
+3. ไปที่ **Authentication → URL Configuration**
+   - Site URL: `https://janepp1.github.io/classcheckin/`
+   - Redirect URLs: เพิ่ม `https://janepp1.github.io/classcheckin/**`
+
+**3. เปิดใช้ในเว็บ**
+ใน `config.js` เปลี่ยน `ENABLE_LOGIN: false` เป็น `true` แล้วบันทึก รอ 1–2 นาที แล้วเปิดเว็บ ล็อกอินด้วย indyjanezz@gmail.com เพื่อเช็คว่าเห็นปุ่ม 🛠️ หน้าแอดมิน
+
+### เปลี่ยนหรือเพิ่มแอดมิน
+แอดมินกำหนดในฐานข้อมูล (ตาราง `private.admins`) ไม่ได้อยู่ในไฟล์เว็บ ถ้าจะเพิ่มอีเมล ให้รันใน Supabase SQL Editor:
+```sql
+insert into private.admins(email) values ('อีเมลใหม่@gmail.com');
+```
 
 ## โหมดผู้สอน และการเช็คชื่อจากมือถือนักเรียน
 
